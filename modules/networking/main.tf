@@ -134,7 +134,8 @@ resource "aws_route_table_association" "public_subnet_route_table_assoc" {
 # private: for any traffic leaves PriSubs to dest 0.0.0.0/0 
 # goes to NatGW then IGW or dropped
 resource "aws_route_table" "private_route_table" {
-    count  = length(var.private_subnets)
+    count  = length(var.availability_zones)
+
     vpc_id = aws_vpc.main_vpc.id
     tags = {
         Name           = "${var.namespace}-${format("pri_route_table-%03d", count.index)}"
@@ -143,7 +144,7 @@ resource "aws_route_table" "private_route_table" {
 }
 
 resource "aws_route" "to_ngw_route" {
-    count                    = length(var.private_subnets)
+    count                    = length(var.availability_zones)
 
     route_table_id           = aws_route_table.private_route_table[count.index].id
     destination_cidr_block   = "0.0.0.0/0"
@@ -154,5 +155,12 @@ resource "aws_route_table_association" "private_subnet_route_table_assoc" {
     count           = length(var.private_subnets)
 
     subnet_id       = aws_subnet.private_subnets[count.index].id
+    route_table_id  = aws_route_table.private_route_table[count.index].id
+}
+
+resource "aws_route_table_association" "db_subnet_route_table_assoc" {
+    count           = length(var.db_subnets)
+
+    subnet_id       = aws_subnet.db_subnets[count.index].id
     route_table_id  = aws_route_table.private_route_table[count.index].id
 }
